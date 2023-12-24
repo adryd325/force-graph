@@ -86,6 +86,7 @@ export default Kapsule({
     d3AlphaTarget: { default: 0, triggerUpdate: false, onChange(alphaTarget, state) { state.forceLayout.alphaTarget(alphaTarget) }},
     d3VelocityDecay: { default: 0.4, triggerUpdate: false, onChange(velocityDecay, state) { state.forceLayout.velocityDecay(velocityDecay) } },
     warmupTicks: { default: 0, triggerUpdate: false }, // how many times to tick the force engine at init before starting to render
+    forceRunning: { default: false, triggerUpdate: false },
     cooldownTicks: { default: Infinity, triggerUpdate: false },
     cooldownTime: { default: 15000, triggerUpdate: false }, // ms
     onUpdate: { default: () => {}, triggerUpdate: false },
@@ -95,8 +96,7 @@ export default Kapsule({
     onNeedsRedraw: { triggerUpdate: false },
     isShadow: { default: false, triggerUpdate: false }
   },
-
-  methods: {
+    methods: {
     // Expose d3 forces for external manipulation
     d3Force: function(state, forceName, forceFn) {
       if (forceFn === undefined) {
@@ -109,6 +109,11 @@ export default Kapsule({
       state.forceLayout.alpha(1);
       this.resetCountdown();
       return this;
+    },
+    forceLayoutSimulation: function(state, value) {
+      state.forceRunning = value;
+      state.engineRunning = value;
+      return this
     },
     // reset cooldown state
     resetCountdown: function(state) {
@@ -132,9 +137,11 @@ export default Kapsule({
       function layoutTick() {
         if (state.engineRunning) {
           if (
-            ++state.cntTicks > state.cooldownTicks ||
-            (new Date()) - state.startTickTime > state.cooldownTime ||
-            (state.d3AlphaMin > 0 && state.forceLayout.alpha() < state.d3AlphaMin)
+            !state.forceRunning && (
+              ++state.cntTicks > state.cooldownTicks ||
+              (new Date()) - state.startTickTime > state.cooldownTime ||
+              (state.d3AlphaMin > 0 && state.forceLayout.alpha() < state.d3AlphaMin)
+            )
           ) {
             state.engineRunning = false; // Stop ticking graph
             state.onEngineStop();
